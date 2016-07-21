@@ -111,7 +111,7 @@ namespace ObservationDeck
 
         private void ExecuteConnect(object obj)
         {
-            ConnectAsync();
+            Task t = ConnectAsync();
         }
 
         private bool CanExecuteConnect(object obj)
