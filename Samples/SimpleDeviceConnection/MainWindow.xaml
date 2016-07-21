@@ -1,0 +1,60 @@
+﻿<Window x:Class="SimpleDeviceConnection.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SimpleDeviceConnection"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <Window.DataContext>
+        <local:DeviceConnectionViewModel />
+    </Window.DataContext>
+    <StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>Device IP:</Label>
+            <TextBox Width="200" Text="{Binding DeviceIP}"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>User Name:</Label>
+            <TextBox Width="200" Text="{Binding UserName}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>Password:</Label>
+            <TextBox Width="200" Text="{Binding Password}" />
+        </StackPanel>
+        <Button Width="200" Command="{Binding ConnectCommand}">Connect</Button>
+        <StackPanel Orientation="Horizontal">
+            <Label>Device Name:</Label>
+            <TextBox Width="200" Text="{Binding DeviceName, Mode=TwoWay}" IsEnabled="{Binding CanUpdateDeviceName}"/>
+            <Button Width="100" Command="{Binding UpdateDeviceNameCommand}">Update</Button>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>Device Family:</Label>
+            <TextBlock VerticalAlignment="Center" Text="{Binding DeviceFamily}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>Computer Name:</Label>
+            <TextBlock VerticalAlignment="Center" Text="{Binding ComputerName}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>Language:</Label>
+            <TextBlock VerticalAlignment="Center" Text="{Binding Language}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>OsEdition:</Label>
+            <TextBlock VerticalAlignment="Center" Text="{Binding OsEdition}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>OsEditionId:</Label>
+            <TextBlock VerticalAlignment="Center" Text="{Binding OsEditionId}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>OsVersion:</Label>
+            <TextBlock VerticalAlignment="Center" Text="{Binding OsVersion}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Label>Platform:</Label>
+            <TextBlock VerticalAlignment="Center" Text="{Binding Platform}" />
+        </StackPanel>
+    </StackPanel>
+</Window>
