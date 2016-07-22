@@ -280,8 +280,20 @@ namespace SimpleDeviceConnection
 
         private async Task UpdateDeviceNameAsync()
         {
-            await cachedPortal.SetDeviceName(DeviceName);
-            await GetDeviceInfoAsync();
+            try
+            {
+                await cachedPortal.SetDeviceName(DeviceName);
+                do
+                {
+                    await cachedPortal.Connect(updateConnection: false);
+                }
+                while (cachedPortal.ConnectionHttpStatusCode != HttpStatusCode.OK);
+                await GetDeviceInfoAsync();
+            }
+            catch(Exception e)
+            {
+                var foo = e.Message;
+            }
         }
 
         private async Task GetDeviceInfoAsync()
