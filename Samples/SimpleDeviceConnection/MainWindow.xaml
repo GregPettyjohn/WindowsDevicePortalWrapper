@@ -5,56 +5,71 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SimpleDeviceConnection"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="600" Width="525">
     <Window.DataContext>
-        <local:DeviceConnectionViewModel />
+        <local:ViewModelGroup />
     </Window.DataContext>
-    <StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>Device IP:</Label>
-            <TextBox Width="200" Text="{Binding DeviceIP}"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Name="Credentials" DataContext="{Binding DeviceConnetion}">
+            <StackPanel Orientation="Horizontal">
+                <Label>Device IP:</Label>
+                <TextBox Width="200" Text="{Binding DeviceIP}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>User Name:</Label>
+                <TextBox Width="200" Text="{Binding UserName}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>Password:</Label>
+                <TextBox Width="200" Text="{Binding Password}" />
+            </StackPanel>
+            <Button Width="200" Command="{Binding ConnectCommand}">Connect</Button>
         </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>User Name:</Label>
-            <TextBox Width="200" Text="{Binding UserName}" />
+        <StackPanel Name="DeviceData" Grid.Row="1" DataContext="{Binding DeviceConnetion}">
+            <StackPanel Orientation="Horizontal">
+                <Label>Device Name:</Label>
+                <TextBox Width="200" Text="{Binding DeviceName, Mode=TwoWay}" IsEnabled="{Binding CanUpdateDeviceName}"/>
+                <Button Width="100" Command="{Binding UpdateDeviceNameCommand}">Update</Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>Device Family:</Label>
+                <TextBlock VerticalAlignment="Center" Text="{Binding DeviceFamily}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>Computer Name:</Label>
+                <TextBlock VerticalAlignment="Center" Text="{Binding ComputerName}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>Language:</Label>
+                <TextBlock VerticalAlignment="Center" Text="{Binding Language}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>OsEdition:</Label>
+                <TextBlock VerticalAlignment="Center" Text="{Binding OsEdition}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>OsEditionId:</Label>
+                <TextBlock VerticalAlignment="Center" Text="{Binding OsEditionId}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>OsVersion:</Label>
+                <TextBlock VerticalAlignment="Center" Text="{Binding OsVersion}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label>Platform:</Label>
+                <TextBlock VerticalAlignment="Center" Text="{Binding Platform}" />
+            </StackPanel>
         </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>Password:</Label>
-            <TextBox Width="200" Text="{Binding Password}" />
-        </StackPanel>
-        <Button Width="200" Command="{Binding ConnectCommand}">Connect</Button>
-        <StackPanel Orientation="Horizontal">
-            <Label>Device Name:</Label>
-            <TextBox Width="200" Text="{Binding DeviceName, Mode=TwoWay}" IsEnabled="{Binding CanUpdateDeviceName}"/>
-            <Button Width="100" Command="{Binding UpdateDeviceNameCommand}">Update</Button>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>Device Family:</Label>
-            <TextBlock VerticalAlignment="Center" Text="{Binding DeviceFamily}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>Computer Name:</Label>
-            <TextBlock VerticalAlignment="Center" Text="{Binding ComputerName}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>Language:</Label>
-            <TextBlock VerticalAlignment="Center" Text="{Binding Language}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>OsEdition:</Label>
-            <TextBlock VerticalAlignment="Center" Text="{Binding OsEdition}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>OsEditionId:</Label>
-            <TextBlock VerticalAlignment="Center" Text="{Binding OsEditionId}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>OsVersion:</Label>
-            <TextBlock VerticalAlignment="Center" Text="{Binding OsVersion}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Label>Platform:</Label>
-            <TextBlock VerticalAlignment="Center" Text="{Binding Platform}" />
-        </StackPanel>
-    </StackPanel>
+        <TextBox Name="Output" Grid.Row="2"
+                 VerticalScrollBarVisibility="Visible"
+                 HorizontalScrollBarVisibility="Auto"
+                 IsReadOnly="True"
+                 Text="{Binding OutputStream, Mode=OneWay}"
+                 DataContext="{Binding Diagnostics}" />
+    </Grid>
 </Window>

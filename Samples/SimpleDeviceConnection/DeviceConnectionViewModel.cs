@@ -18,15 +18,38 @@ using System.Windows.Shapes;
 
 namespace SimpleDeviceConnection
 {
-    class DeviceConnectionViewModel : INotifyPropertyChanged
+    public class DeviceConnectionViewModel : INotifyPropertyChanged
     {
+        //-------------------------------------------------------------------
+        //  Constructors
+        //-------------------------------------------------------------------
+        #region Constructors
+        /// <summary>
+        ///  Default constructor creates a null diagnostic sink
+        /// </summary>
+        /// <remarks>Diagnostic output will be lost</remarks>
+        public DeviceConnectionViewModel()
+        {
+            diagnostics = new NullDiagnosticSink();
+        }
+
+        /// <summary>
+        /// Use this constructor to specify a diagnostic sink for diagnostic output
+        /// </summary>
+        /// <param name="diags">Diagnostic sink that will receive all the diagnostic output</param>
+        public DeviceConnectionViewModel(IDiagnosticSink diags)
+        {
+            diagnostics = diags;
+        }
+        #endregion // Constructors
+
         //-------------------------------------------------------------------
         //  Private Members
         //-------------------------------------------------------------------
         #region Private Members
         private DevicePortal.OperatingSystemInformation osInfo;
         private DevicePortal cachedPortal;
-
+        private IDiagnosticSink diagnostics;
         #endregion // Private Members
 
         //-------------------------------------------------------------------
@@ -118,6 +141,7 @@ namespace SimpleDeviceConnection
         #endregion // DeviceFamily
 
         // TODO: Figure out if this is the same as DeviceName
+        // Note: It is!
         #region ComputerName
         public string ComputerName
         {
@@ -185,14 +209,6 @@ namespace SimpleDeviceConnection
         #endregion // Platform
 
 
-        public bool CanUpdateDeviceName
-        {
-            get
-            {
-                return cachedPortal != null && !CanExecuteConnect(null);
-            }
-        }
-
         #endregion // Properties
 
         //-------------------------------------------------------------------
@@ -216,6 +232,7 @@ namespace SimpleDeviceConnection
 
         private void ExecuteConnect(object obj)
         {
+            diagnostics.OutputDiagnosticString("Connect clicked\n");
             Task t = ConnectAsync();
         }
 
@@ -260,19 +277,30 @@ namespace SimpleDeviceConnection
         #region Misc. Methods
         private async Task ConnectAsync()
         {
-            DevicePortal portal = new DevicePortal(new XboxDevicePortalConnection(deviceIP, userName, password));
-
-            await portal.Connect(updateConnection: false);
-
-            if (portal.ConnectionHttpStatusCode == HttpStatusCode.OK)
+            try
             {
-                cachedPortal = portal;
-                await GetDeviceInfoAsync();
+                DevicePortal portal = new DevicePortal(new XboxDevicePortalConnection(deviceIP, userName, password));
+
+                await portal.Connect(updateConnection: false);
+
+                if (portal.ConnectionHttpStatusCode == HttpStatusCode.OK)
+                {
+                    cachedPortal = portal;
+                    await GetDeviceInfoAsync();
+                }
+                else
+                {
+                    cachedPortal = null;
+
+                    // Propagate to the user
+                    diagnostics.OutputDiagnosticString("Failed to connect to device. HTTP status code: {0}\n", portal.ConnectionHttpStatusCode.ToString());
+                }
             }
-            else
+            catch(Exception exn)
             {
-                // TODO: bubble status up to user
-                cachedPortal = null;
+                diagnostics.OutputDiagnosticString(false, "Exception when trying to connect:\n");
+                diagnostics.OutputDiagnosticString(false, "{0}\n", exn.Message);
+                diagnostics.OutputDiagnosticString("StackTrace: \n{0}\n", exn.StackTrace);
             }
 
             ClearCredentials();
@@ -283,16 +311,25 @@ namespace SimpleDeviceConnection
             try
             {
                 await cachedPortal.SetDeviceName(DeviceName);
+                // TODO: Factor this loop out into a function
+                // should consume a retry count (rather than looping forever)
                 do
                 {
                     await cachedPortal.Connect(updateConnection: false);
+                    if (cachedPortal.ConnectionHttpStatusCode != HttpStatusCode.OK)
+                    {
+                        diagnostics.OutputDiagnosticString(false, "Failed to connect to device. HTTP status code: {0}\n", cachedPortal.ConnectionHttpStatusCode.ToString());
+                        diagnostics.OutputDiagnosticString("Retrying connection...");
+                    }
                 }
                 while (cachedPortal.ConnectionHttpStatusCode != HttpStatusCode.OK);
                 await GetDeviceInfoAsync();
             }
-            catch(Exception e)
+            catch(Exception exn)
             {
-                var foo = e.Message;
+                diagnostics.OutputDiagnosticString(false, "Exception when trying to connect:\n");
+                diagnostics.OutputDiagnosticString(false, "{0}\n", exn.Message);
+                diagnostics.OutputDiagnosticString("StackTrace: \n{0}\n", exn.StackTrace);
             }
         }
 
@@ -323,6 +360,14 @@ namespace SimpleDeviceConnection
             OnPropertyChanged("UserName");
             OnPropertyChanged("Password");
             OnPropertyChanged("CanUpdateDeviceName");
+        }
+
+        public bool CanUpdateDeviceName
+        {
+            get
+            {
+                return cachedPortal != null && !CanExecuteConnect(null);
+            }
         }
         #endregion // Misc. Methods
 
