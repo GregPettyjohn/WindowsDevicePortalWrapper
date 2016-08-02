@@ -13,11 +13,7 @@ namespace SimpleDeviceConnection
     /// </summary>
     public interface IDiagnosticSink
     {
-        void OutputDiagnosticString(bool flush, string fmt, params object[] args);
-
         void OutputDiagnosticString(string fmt, params object[] args);
-
-        void FlushOutput();
     }
 
     /// <summary>
@@ -25,15 +21,7 @@ namespace SimpleDeviceConnection
     /// </summary>
     public class NullDiagnosticSink : IDiagnosticSink
     {
-        public void FlushOutput()
-        {
-        }
-
         public void OutputDiagnosticString(string fmt, params object[] args)
-        {
-        }
-
-        public void OutputDiagnosticString(bool flush, string fmt, params object[] args)
         {
         }
     }
@@ -43,22 +31,9 @@ namespace SimpleDeviceConnection
     /// </summary>
     public class ConsoleDiagnositcSink : IDiagnosticSink
     {
-        public void FlushOutput()
-        {
-        }
-
         public void OutputDiagnosticString(string fmt, params object[] args)
         {
-            OutputDiagnosticString(true, fmt, args);
-        }
-
-        public void OutputDiagnosticString(bool flush, string fmt, params object[] args)
-        {
             Console.Write(string.Format(fmt, args));
-            if(flush)
-            {
-                FlushOutput();
-            }
         }
     }
 
@@ -67,22 +42,9 @@ namespace SimpleDeviceConnection
     /// </summary>
     public class DebugDiagnosticSink : IDiagnosticSink
     {
-        public void FlushOutput()
-        {
-        }
-
         public void OutputDiagnosticString(string fmt, params object[] args)
         {
-            OutputDiagnosticString(true, fmt, args);
-        }
-
-        public void OutputDiagnosticString(bool flush, string fmt, params object[] args)
-        {
             Debug.Write(string.Format(fmt, args));
-            if (flush)
-            {
-                FlushOutput();
-            }
         }
     }
 
@@ -98,28 +60,12 @@ namespace SimpleDeviceConnection
             sinks = args;
         }
 
-        public void FlushOutput()
-        {
-            foreach(var diag in sinks)
-            {
-                diag.FlushOutput();
-            }
-        }
 
         public void OutputDiagnosticString(string fmt, params object[] args)
         {
-            OutputDiagnosticString(true, fmt, args);
-        }
-
-        public void OutputDiagnosticString(bool flush, string fmt, params object[] args)
-        {
-            foreach(var diag in sinks)
+            foreach (var diag in sinks)
             {
-                diag.OutputDiagnosticString(false, fmt, args);
-            }
-            if(flush)
-            {
-                FlushOutput();
+                diag.OutputDiagnosticString(fmt, args);
             }
         }
     }
@@ -134,7 +80,7 @@ namespace SimpleDeviceConnection
         //  Private Members
         //-------------------------------------------------------------------
         #region Private Members
-        private const int maxBufferSize = 65535;
+        private const int cMaxBufferSize = 65535;
         #endregion // Private Members
 
 
@@ -143,17 +89,17 @@ namespace SimpleDeviceConnection
         //-------------------------------------------------------------------
         #region Properties
         #region OutputStream
-        private string outputStream;
+        private string mOutputStream;
         public string OutputStream
         {
             get
             {
-                return outputStream;
+                return mOutputStream;
             }
 
             private set
             {
-                SetField(ref outputStream, value, "OutputStream");
+                SetField(ref mOutputStream, value, "OutputStream");
             }
         }
         #endregion // OutputStream
@@ -164,19 +110,6 @@ namespace SimpleDeviceConnection
         //-------------------------------------------------------------------
         #region IDiagnosticSink Implementation
         /// <summary>
-        /// Flush pending output
-        /// </summary>
-        public void FlushOutput()
-        {
-            int len = outputStream.Length;
-            if ( len > maxBufferSize)
-            {
-                outputStream = outputStream.Substring(len - maxBufferSize);
-            }
-            OnPropertyChanged("OutputStream");
-        }
-
-        /// <summary>
         /// Prints a formatted diagnostic string to the output stream
         /// </summary>
         /// <param name="fmt">Format string</param>
@@ -184,24 +117,28 @@ namespace SimpleDeviceConnection
         /// <remarks>Automatically flushes the output</remarks>
         public void OutputDiagnosticString(string fmt, params object[] args)
         {
-            OutputDiagnosticString(true, fmt, args);
-        }
-
-        /// <summary>
-        /// Prints a formatted diagnostic string to the output stream
-        /// </summary>
-        /// <param name="flush">True if you want to flush the output otherwise false</param>
-        /// <param name="fmt">Format string</param>
-        /// <param name="args">Format arguments</param>
-        public void OutputDiagnosticString(bool flush, string fmt, params object[] args)
-        {
-            outputStream += string.Format(fmt, args);
-            if (flush)
-            {
-                FlushOutput();
-            }
+            mOutputStream += string.Format(fmt, args);
+            FlushOutput();
         }
         #endregion // IDiagnosticSink Implementation
+
+        //-------------------------------------------------------------------
+        //  Private Methods
+        //-------------------------------------------------------------------
+        #region Private Methods
+        /// <summary>
+        /// Flush pending output
+        /// </summary>
+        private void FlushOutput()
+        {
+            int len = mOutputStream.Length;
+            if (len > cMaxBufferSize)
+            {
+                mOutputStream = mOutputStream.Substring(len - cMaxBufferSize);
+            }
+            OnPropertyChanged("OutputStream");
+        }
+        #endregion // Private Methods
 
         //-------------------------------------------------------------------
         //  INotifyPropertyChanged Implementation

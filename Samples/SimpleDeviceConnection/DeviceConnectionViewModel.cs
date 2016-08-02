@@ -298,9 +298,7 @@ namespace SimpleDeviceConnection
             }
             catch(Exception exn)
             {
-                diagnostics.OutputDiagnosticString(false, "Exception when trying to connect:\n");
-                diagnostics.OutputDiagnosticString(false, "{0}\n", exn.Message);
-                diagnostics.OutputDiagnosticString("StackTrace: \n{0}\n", exn.StackTrace);
+                diagnostics.OutputDiagnosticString("Exception when trying to connect:\n{0}\nStackTrace: \n{1}\n", exn.Message, exn.StackTrace);
             }
 
             ClearCredentials();
@@ -318,8 +316,7 @@ namespace SimpleDeviceConnection
                     await cachedPortal.Connect(updateConnection: false);
                     if (cachedPortal.ConnectionHttpStatusCode != HttpStatusCode.OK)
                     {
-                        diagnostics.OutputDiagnosticString(false, "Failed to connect to device. HTTP status code: {0}\n", cachedPortal.ConnectionHttpStatusCode.ToString());
-                        diagnostics.OutputDiagnosticString("Retrying connection...");
+                        diagnostics.OutputDiagnosticString("Failed to connect to device. HTTP status code: {0}\nRetrying connection...", cachedPortal.ConnectionHttpStatusCode.ToString());
                     }
                 }
                 while (cachedPortal.ConnectionHttpStatusCode != HttpStatusCode.OK);
@@ -327,9 +324,7 @@ namespace SimpleDeviceConnection
             }
             catch(Exception exn)
             {
-                diagnostics.OutputDiagnosticString(false, "Exception when trying to connect:\n");
-                diagnostics.OutputDiagnosticString(false, "{0}\n", exn.Message);
-                diagnostics.OutputDiagnosticString("StackTrace: \n{0}\n", exn.StackTrace);
+                diagnostics.OutputDiagnosticString("Exception when trying to connect:\n{0}\nStackTrace: \n{1}\n", exn.Message, exn.StackTrace);
             }
         }
 
