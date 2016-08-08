@@ -43,7 +43,7 @@ namespace Microsoft.Tools.WindowsDevicePortal
             Exception innerException = null) : this(
                                                     responseMessage.StatusCode,
                                                     responseMessage.ReasonPhrase,
-                                                    responseMessage.RequestMessage != null? responseMessage.RequestMessage.RequestUri : null,
+                                                    responseMessage.RequestMessage != null ? responseMessage.RequestMessage.RequestUri : null,
                                                     message,
                                                     innerException)
         {
@@ -145,7 +145,6 @@ namespace Microsoft.Tools.WindowsDevicePortal
         [SecurityCritical]
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            // TODO - look at an example of how this function is implemented
             base.GetObjectData(info, context);
         }
 #endif // !WINDOWS_UWP

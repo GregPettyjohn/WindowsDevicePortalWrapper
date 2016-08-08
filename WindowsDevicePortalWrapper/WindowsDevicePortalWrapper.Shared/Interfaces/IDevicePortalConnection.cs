@@ -5,7 +5,6 @@
 //----------------------------------------------------------------------------------------------
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using static Microsoft.Tools.WindowsDevicePortal.DevicePortal;
 
@@ -32,25 +31,27 @@ namespace Microsoft.Tools.WindowsDevicePortal
         NetworkCredential Credentials { get; }
 
         /// <summary>
-        /// Gets the friendly name of the device (ex: LivingRoomPC).
-        /// </summary>
-        string Name { get; }
-
-        /// <summary>
         /// Gets or sets the family of the device (ex: Windows.Holographic).
         /// </summary>
         string Family { get; set; }
+
+        /// <summary>
+        /// Gets the friendly name of the device (ex: LivingRoomPC).
+        /// </summary>
+        string Name { get; }
 
         /// <summary>
         /// Gets or sets information describing the operating system installed on the device.
         /// </summary>
         OperatingSystemInformation OsInfo { get; set; }
 
+#if !WINDOWS_UWP
         /// <summary>
         /// Get the raw data of the device's root certificate.
         /// </summary>
         /// <returns>Byte array containing the certificate data.</returns>
         byte[] GetDeviceCertificateData();
+#endif
 
         /// <summary>
         /// Validates and sets the device certificate.

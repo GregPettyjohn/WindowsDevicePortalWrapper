@@ -26,26 +26,43 @@ namespace Microsoft.Tools.WindowsDevicePortal
         /// Submits the http post request to the specified uri.
         /// </summary>
         /// <param name="uri">The uri to which the post request will be issued.</param>
+        /// <param name="requestStream">Optional stream containing data for the request body.</param>
+        /// <param name="requestStreamContentType">The type of that request body data.</param>
         /// <returns>Task tracking the completion of the POST request</returns>
 #pragma warning disable 1998
-        private async Task<Stream> Post(Uri uri)
+        private async Task<Stream> Post(
+            Uri uri,
+            Stream requestStream = null,
+            string requestStreamContentType = null)
         {
+            HttpStreamContent requestContent = null;
             IBuffer dataBuffer = null;
+
+            if (requestStream != null)
+            {
+                requestContent = new HttpStreamContent(requestStream.AsInputStream());
+                requestContent.Headers.Remove(ContentTypeHeaderName);
+                requestContent.Headers.TryAppendWithoutValidation(ContentTypeHeaderName, requestStreamContentType);
+            }
 
             HttpBaseProtocolFilter httpFilter = new HttpBaseProtocolFilter();
             httpFilter.AllowUI = false;
-            httpFilter.ServerCredential = new PasswordCredential();
-            httpFilter.ServerCredential.UserName = this.deviceConnection.Credentials.UserName;
-            httpFilter.ServerCredential.Password = this.deviceConnection.Credentials.Password;
+
+            if (this.deviceConnection.Credentials != null)
+            {
+                httpFilter.ServerCredential = new PasswordCredential();
+                httpFilter.ServerCredential.UserName = this.deviceConnection.Credentials.UserName;
+                httpFilter.ServerCredential.Password = this.deviceConnection.Credentials.Password;
+            }
 
             using (HttpClient client = new HttpClient(httpFilter))
             {
-                this.ApplyHttpHeaders(client, "POST");
+                this.ApplyHttpHeaders(client, HttpMethods.Post);
 
-                IAsyncOperationWithProgress<HttpResponseMessage, HttpProgress> responseOperation = client.PostAsync(uri, null);
+                IAsyncOperationWithProgress<HttpResponseMessage, HttpProgress> responseOperation = client.PostAsync(uri, requestContent);
                 TaskAwaiter<HttpResponseMessage> responseAwaiter = responseOperation.GetAwaiter();
                 while (!responseAwaiter.IsCompleted)
-                { 
+                {
                 }
 
                 using (HttpResponseMessage response = responseOperation.GetResults())

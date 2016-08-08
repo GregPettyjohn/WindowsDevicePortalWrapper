@@ -1,13 +1,17 @@
-﻿using System;
+﻿//----------------------------------------------------------------------------------------------
+// <copyright file="DevicePortalConnection.cs" company="Microsoft Corporation">
+//     Licensed under the MIT License. See LICENSE.TXT in the project root license information.
+// </copyright>
+//----------------------------------------------------------------------------------------------
+
+using System;
 using System.Net;
 using System.Text.RegularExpressions;
-using Windows.Foundation;
 using Windows.Security.Cryptography.Certificates;
-using Windows.Storage.Streams;
 using Microsoft.Tools.WindowsDevicePortal;
 using static Microsoft.Tools.WindowsDevicePortal.DevicePortal;
 
-namespace TestApp
+namespace TestAppHL.UniversalWindows
 {
     public class DevicePortalConnection : IDevicePortalConnection
     {
@@ -27,8 +31,13 @@ namespace TestApp
                 address = "localhost:10080";
             }
 
-            this.Connection = new Uri(string.Format("{0}://{1}", this.GetUriScheme(address), address));
-            this.Credentials = new NetworkCredential(userName, password);
+            this.Connection = new Uri(
+                string.Format("{0}://{1}", 
+                this.GetUriScheme(address), 
+                address));
+            this.Credentials = new NetworkCredential(
+                userName, 
+                password);
         }
 
         public Uri Connection
@@ -96,15 +105,6 @@ namespace TestApp
         }
 
         /// <summary>
-        /// Returns certificate data
-        /// </summary>
-        /// <returns>certificate data</returns>
-        public byte[] GetDeviceCertificateData()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Validates and sets the device certificate.
         /// </summary>
         /// <param name="certificate">The device's root certificate.</param>
@@ -166,7 +166,6 @@ namespace TestApp
                     if ((addressInfo.Address != "0.0.0.0") && !addressInfo.Address.StartsWith("169."))
                     {
                         newConnection = new Uri(string.Format("{0}://{1}", this.GetUriScheme(addressInfo.Address, requiresHttps), addressInfo.Address));
-                        //// TODO qualified name
                         break;
                     }
                 }
@@ -189,8 +188,8 @@ namespace TestApp
             string address,
             bool requiresHttps = true)
         {
-            return (address.Contains("127.0.0.1") || 
-                    address.Contains("localhost") || 
+            return (address.Contains("127.0.0.1") ||
+                    address.Contains("localhost") ||
                     !requiresHttps) ? "http" : "https";
         }
     }

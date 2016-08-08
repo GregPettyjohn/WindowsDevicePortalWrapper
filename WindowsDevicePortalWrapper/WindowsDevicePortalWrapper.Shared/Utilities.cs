@@ -5,6 +5,8 @@
 //----------------------------------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace Microsoft.Tools.WindowsDevicePortal
 {
@@ -37,10 +39,37 @@ namespace Microsoft.Tools.WindowsDevicePortal
         /// <param name="endpoint">The endpoint that is being modified.</param>
         public static void ModifyEndpointForFilename(ref string endpoint)
         {
-            endpoint = endpoint.Replace('\\', '_');
-            endpoint = endpoint.Replace('/', '_');
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+
+            foreach (char character in invalidChars)
+            {
+                endpoint = endpoint.Replace(character, '_');
+            }
+
             endpoint = endpoint.Replace('-', '_');
             endpoint = endpoint.Replace('.', '_');
+            endpoint = endpoint.Replace('=', '_');
+            endpoint = endpoint.Replace('&', '_');
+        }
+
+        /// <summary>
+        /// Builds a query string from key value pairs.
+        /// </summary>
+        /// <param name="payload">The key value pairs containing the query parameters.</param>
+        /// <returns>Properly formatted query string.</returns>
+        public static string BuildQueryString(Dictionary<string, string> payload)
+        {
+            string query = string.Empty;
+
+            foreach (KeyValuePair<string, string> pair in payload)
+            {
+                query += pair.Key + "=" + pair.Value + "&";
+            }
+
+            // Trim off the final ampersand.
+            query = query.Trim('&');
+
+            return query;
         }
 
         /// <summary>

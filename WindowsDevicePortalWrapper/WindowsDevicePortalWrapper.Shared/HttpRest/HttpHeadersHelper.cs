@@ -8,7 +8,10 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
 #else
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Windows.Web.Http;
 using Windows.Web.Http.Headers;
 #endif // !WINDOWS_UWP
@@ -20,6 +23,11 @@ namespace Microsoft.Tools.WindowsDevicePortal
     /// </content>
     public partial class DevicePortal
     {
+        /// <summary>
+        /// Header name for Content Type of a request body.
+        /// </summary>
+        private static readonly string ContentTypeHeaderName = "Content-Type";
+
         /// <summary>
         /// Header name for a CSRF-Token.
         /// </summary>
@@ -48,12 +56,12 @@ namespace Microsoft.Tools.WindowsDevicePortal
         /// <param name="method">The HTTP method (ex: POST) that will be called on the client.</param>
         public void ApplyCSRFHeader(
             HttpClient client, 
-            string method)
+            HttpMethods method)
         {
             string headerName = "X-" + CsrfTokenName;
             string headerValue = this.csrfToken;
 
-            if (string.Compare(method, "get", true) == 0)
+            if (string.Compare(method.ToString(), "get", true) == 0)
             {
                 headerName = CsrfTokenName;
                 headerValue = string.IsNullOrEmpty(this.csrfToken) ? "Fetch" : headerValue;
@@ -75,7 +83,7 @@ namespace Microsoft.Tools.WindowsDevicePortal
         /// <param name="method">The HTTP method (ex: POST) that will be called on the client.</param>
         public void ApplyHttpHeaders(
             HttpClient client,
-            string method)
+            HttpMethods method)
         {
             this.ApplyCSRFHeader(client, method);
             this.ApplyUserAgentHeader(client);
@@ -91,10 +99,14 @@ namespace Microsoft.Tools.WindowsDevicePortal
             string userAgentValue = UserAgentValue;
 
 #if WINDOWS_UWP
-            userAgentValue += "/UWP";
+            Assembly asm = this.GetType().GetTypeInfo().Assembly;
+            userAgentValue += "-v" + asm.GetName().Version.ToString();
+            userAgentValue += "-UWP";
             HttpRequestHeaderCollection headers = client.DefaultRequestHeaders;
 #else
-            userAgentValue += "/dotnet";
+            Assembly asm = Assembly.GetExecutingAssembly();
+            userAgentValue += "-v" + asm.GetName().Version.ToString();
+            userAgentValue += "-dotnet";
             HttpRequestHeaders headers = client.DefaultRequestHeaders;
 #endif // WINDOWS_UWP
 
@@ -109,28 +121,28 @@ namespace Microsoft.Tools.WindowsDevicePortal
         {
             // If the response sets a CSRF token, store that for future requests.
 #if WINDOWS_UWP
-                    string cookie;
-                    if (response.Headers.TryGetValue("Set-Cookie", out cookie))
-                    {
-                        string csrfTokenNameWithEquals = CsrfTokenName + "=";
-                        if (cookie.StartsWith(csrfTokenNameWithEquals))
-                        {
-                            this.csrfToken = cookie.Substring(csrfTokenNameWithEquals.Length);
-                        }
-                    }
+            string cookie;
+            if (response.Headers.TryGetValue("Set-Cookie", out cookie))
+            {
+                string csrfTokenNameWithEquals = CsrfTokenName + "=";
+                if (cookie.StartsWith(csrfTokenNameWithEquals))
+                {
+                    this.csrfToken = cookie.Substring(csrfTokenNameWithEquals.Length);
+                }
+            }
 #else
-                    IEnumerable<string> cookies;
-                    if (response.Headers.TryGetValues("Set-Cookie", out cookies))
+            IEnumerable<string> cookies;
+            if (response.Headers.TryGetValues("Set-Cookie", out cookies))
+            {
+                foreach (string cookie in cookies)
+                {
+                    string csrfTokenNameWithEquals = CsrfTokenName + "=";
+                    if (cookie.StartsWith(csrfTokenNameWithEquals))
                     {
-                        foreach (string cookie in cookies)
-                        {
-                            string csrfTokenNameWithEquals = CsrfTokenName + "=";
-                            if (cookie.StartsWith(csrfTokenNameWithEquals))
-                            {
-                                this.csrfToken = cookie.Substring(csrfTokenNameWithEquals.Length);
-                            }
-                        }
+                        this.csrfToken = cookie.Substring(csrfTokenNameWithEquals.Length);
                     }
+                }
+            }
 #endif
         }
     }

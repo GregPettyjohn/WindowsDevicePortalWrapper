@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Tools.WindowsDevicePortal;
 using static Microsoft.Tools.WindowsDevicePortal.DevicePortal;
 
-namespace TestApp
+namespace TestAppHL
 {
     /// <summary>
     /// IDevicePortalConnection implementation for the HoloLens test project
@@ -113,10 +113,6 @@ namespace TestApp
             set;
         }
 
-        // TODO: consider adding support for the fully qualified device name 
-        // public string QualifiedName
-        // { get; set; }
-
         /// <summary>
         /// Gets the raw device certificate.
         /// </summary>
@@ -180,7 +176,6 @@ namespace TestApp
                     if ((addressInfo.Address != "0.0.0.0") && !addressInfo.Address.StartsWith("169."))
                     {
                         newConnection = new Uri(string.Format("{0}://{1}", this.GetUriScheme(addressInfo.Address, requiresHttps), addressInfo.Address));
-                        //// TODO qualified name
                         break;
                     }
                 }
