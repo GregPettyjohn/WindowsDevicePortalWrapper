@@ -172,8 +172,6 @@ namespace SimpleDeviceConnection
         }
         #endregion // DeviceFamily
 
-        // TODO: Figure out if this is the same as DeviceName
-        // Note: It is!
         #region ComputerName
         public string ComputerName
         {
