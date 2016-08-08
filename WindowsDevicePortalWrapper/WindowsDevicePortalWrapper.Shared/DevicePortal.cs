@@ -60,6 +60,11 @@ namespace Microsoft.Tools.WindowsDevicePortal
         }
 
         /// <summary>
+        /// Gets or sets handler for reporting connection status.
+        /// </summary>
+        public event DeviceConnectionStatusEventHandler ConnectionStatus;
+
+        /// <summary>
         /// HTTP Methods
         /// </summary>
         public enum HttpMethods
@@ -96,15 +101,6 @@ namespace Microsoft.Tools.WindowsDevicePortal
         public string Address 
         {
             get { return this.deviceConnection.Connection.Authority; }
-        }
-        
-        /// <summary>
-        /// Gets or sets handler for reporting connection status.
-        /// </summary>
-        public DeviceConnectionStatusEventHandler ConnectionStatus
-        {
-            get;
-            set;
         }
 
         /// <summary>
@@ -242,10 +238,6 @@ namespace Microsoft.Tools.WindowsDevicePortal
 
                     // TODO - consider what to do if there is more than one wifi interface on a device
                     await this.ConnectToWifiNetwork(wifiInterfaces.Interfaces[0].Guid, ssid, ssidKey);
-
-                    // TODO - note that in some instances, the hololens was receiving a KeepAlive exception, yet the network connection succeeded. 
-                    // this COULD have been an RTM bug that is now fixed, or it could have been the fault of the access point
-                    // some investigation and defensive measures should be implemented here to avoid excessive noise / false failures
                 }
 
                 // Get the device's IP configuration and update the connection as appropriate.
@@ -274,7 +266,7 @@ namespace Microsoft.Tools.WindowsDevicePortal
                 }
                 else
                 {
-                    this.ConnectionHttpStatusCode = (HttpStatusCode)0;
+                    this.ConnectionHttpStatusCode = HttpStatusCode.Conflict;
                 }
 
                 this.SendConnectionStatus(
@@ -329,8 +321,8 @@ namespace Microsoft.Tools.WindowsDevicePortal
                 ManualResetEvent streamReceived = new ManualResetEvent(false);
                 Stream stream = null;
 
-                WindowsDevicePortal.WebSocketMessageReceivedEventHandler<Stream> streamReceivedHandler =
-                    delegate(object sender, WebSocketMessageReceivedEventArgs<Stream> args)
+                WindowsDevicePortal.WebSocketStreamReceivedEventInternalHandler<object> streamReceivedHandler =
+                    delegate(WebSocket<object> sender, WebSocketMessageReceivedEventArgs<Stream> args)
                 {
                     if (args.Message != null)
                     {

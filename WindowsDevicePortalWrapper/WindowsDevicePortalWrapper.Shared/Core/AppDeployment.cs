@@ -32,26 +32,22 @@ namespace Microsoft.Tools.WindowsDevicePortal
         /// <summary>
         /// API to retrieve list of installed packages.
         /// </summary>
-        private static readonly string InstalledPackagesApi = "api/app/packagemanager/packages";
+        public static readonly string InstalledPackagesApi = "api/app/packagemanager/packages";
 
         /// <summary>
         /// Install state API.
         /// </summary>
-        private static readonly string InstallStateApi = "api/app/packagemanager/state";
+        public static readonly string InstallStateApi = "api/app/packagemanager/state";
 
         /// <summary>
         /// API for package management.
         /// </summary>
-        private static readonly string PackageManagerApi = "api/app/packagemanager/package";
+        public static readonly string PackageManagerApi = "api/app/packagemanager/package";
 
         /// <summary>
         /// Gets or sets install status handler.
         /// </summary>
-        public ApplicationInstallStatusEventHandler AppInstallStatus
-        {
-            get;
-            set;
-        }
+        public event ApplicationInstallStatusEventHandler AppInstallStatus;
 
         /// <summary>
         /// Gets the collection of applications installed on the device.
@@ -203,18 +199,20 @@ namespace Microsoft.Tools.WindowsDevicePortal
             {
                 DevicePortalException dpe = e as DevicePortalException;
 
-                HttpStatusCode status = (HttpStatusCode)0;
-                Uri request = null;
                 if (dpe != null)
                 {
-                    status = dpe.StatusCode;
-                    request = dpe.RequestUri;
+                    this.SendAppInstallStatus(
+                        ApplicationInstallStatus.Failed,
+                        ApplicationInstallPhase.Idle,
+                        string.Format("Failed to install {0}: {1}", appName, dpe.Reason));
                 }
-
-                this.SendAppInstallStatus(
-                    ApplicationInstallStatus.Failed,
-                    ApplicationInstallPhase.Idle,
-                    string.Format("Failed to install {0}: {1}", appName, installPhaseDescription));
+                else
+                {
+                    this.SendAppInstallStatus(
+                        ApplicationInstallStatus.Failed,
+                        ApplicationInstallPhase.Idle,
+                        string.Format("Failed to install {0}: {1}", appName, installPhaseDescription));
+                }
             }
         }
 
