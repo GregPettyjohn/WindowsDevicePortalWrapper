@@ -150,7 +150,7 @@ namespace Microsoft.Tools.WindowsDevicePortal
         /// <param name="requiresHttps">https required</param>
         public void UpdateConnection(IpConfiguration ipConfig, bool requiresHttps)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
     }
 }

@@ -48,7 +48,7 @@ namespace SimpleDeviceConnection
         //-------------------------------------------------------------------
         #region Private Members
         private DevicePortal.OperatingSystemInformation osInfo;
-        private DevicePortal cachedPortal;
+        
         private IDiagnosticSink diagnostics;
         #endregion // Private Members
 
@@ -56,6 +56,38 @@ namespace SimpleDeviceConnection
         //  Properties
         //-------------------------------------------------------------------
         #region Properties
+
+        #region Current Portal
+        private DevicePortal currentPortal;
+        public DevicePortal CurrentPortal
+        {
+            get
+            {
+                return currentPortal;
+            }
+            private set
+            {
+                SetField(ref currentPortal, value, "CurrentPortal");
+                OnPropertyChanged("CanUpdateDeviceName");
+            }
+        }
+        #endregion // Current Portal
+
+        #region IsConnecting
+        private bool isConnecting;
+        public bool IsConnecting
+        {
+            get
+            {
+                return isConnecting;
+            }
+            private set
+            {
+                SetField(ref isConnecting, value, "IsConnecting");
+                OnPropertyChanged("CanUpdateDeviceName");
+            }
+        }
+        #endregion // IsConnecting
 
         #region DeviceIP
         private string deviceIP;
@@ -114,7 +146,7 @@ namespace SimpleDeviceConnection
         {
             get
             {
-                return cachedPortal == null ? @"<unknown>" : deviceName;
+                return CurrentPortal == null ? @"<unknown>" : deviceName;
             }
 
             set
@@ -130,7 +162,7 @@ namespace SimpleDeviceConnection
         {
             get
             {
-                return cachedPortal == null ? @"<unknown>" : deviceFamily;
+                return CurrentPortal == null ? @"<unknown>" : deviceFamily;
             }
 
             set
@@ -207,8 +239,6 @@ namespace SimpleDeviceConnection
             private set { }
         }
         #endregion // Platform
-
-
         #endregion // Properties
 
         //-------------------------------------------------------------------
@@ -233,12 +263,41 @@ namespace SimpleDeviceConnection
         private void ExecuteConnect(object obj)
         {
             diagnostics.OutputDiagnosticString("Connect clicked\n");
-            Task t = ConnectAsync();
+            if (!IsConnecting)
+            {
+                IsConnecting = true;
+                CurrentPortal = null;
+                osInfo = null;
+                OnOsInfoChanged();
+
+                IDevicePortalConnection conn = new XboxDevicePortalConnection(deviceIP, userName, password);
+
+                DevicePortal portal = new DevicePortal(conn);
+
+                portal.ConnectionStatus += (object sender, DeviceConnectionStatusEventArgs args) =>
+                {
+                    diagnostics.OutputDiagnosticString("Connection status update: Status: {0}, Phase: {1}\n", args.Status, args.Phase);
+                    if (args.Status == DeviceConnectionStatus.Connected)
+                    {
+                        this.CurrentPortal = portal;
+                        this.osInfo = conn.OsInfo;
+                        OnOsInfoChanged();
+                        IsConnecting = false;
+                    }
+                    else if (args.Status == DeviceConnectionStatus.Failed)
+                    {
+                        IsConnecting = false;
+                    }
+                };
+
+                Task t = ConnectAsync(portal);
+            }
         }
 
         private bool CanExecuteConnect(object obj)
         {
             return
+                !IsConnecting &&
                 !string.IsNullOrWhiteSpace(DeviceIP) &&
                 !string.IsNullOrWhiteSpace(UserName) &&
                 !string.IsNullOrWhiteSpace(Password);
@@ -247,6 +306,7 @@ namespace SimpleDeviceConnection
 
         #region UpdateDeviceName Command
         private ICommand updateDeviceNameCommand;
+
         public ICommand UpdateDeviceNameCommand
         {
             get
@@ -275,51 +335,34 @@ namespace SimpleDeviceConnection
         // Misc. Methods
         //-------------------------------------------------------------------
         #region Misc. Methods
-        private async Task ConnectAsync()
+        private async Task ConnectAsync(DevicePortal portal)
         {
             try
             {
-                DevicePortal portal = new DevicePortal(new XboxDevicePortalConnection(deviceIP, userName, password));
-
-                await portal.Connect(updateConnection: false);
-
-                if (portal.ConnectionHttpStatusCode == HttpStatusCode.OK)
-                {
-                    cachedPortal = portal;
-                    await GetDeviceInfoAsync();
-                }
-                else
-                {
-                    cachedPortal = null;
-
-                    // Propagate to the user
-                    diagnostics.OutputDiagnosticString("Failed to connect to device. HTTP status code: {0}\n", portal.ConnectionHttpStatusCode.ToString());
-                }
+                await portal.Connect();
             }
             catch(Exception exn)
             {
                 diagnostics.OutputDiagnosticString("Exception when trying to connect:\n{0}\nStackTrace: \n{1}\n", exn.Message, exn.StackTrace);
             }
-
-            ClearCredentials();
         }
 
         private async Task UpdateDeviceNameAsync()
         {
             try
             {
-                await cachedPortal.SetDeviceName(DeviceName);
+                await CurrentPortal.SetDeviceName(DeviceName);
                 // TODO: Factor this loop out into a function
                 // should consume a retry count (rather than looping forever)
                 do
                 {
-                    await cachedPortal.Connect(updateConnection: false);
-                    if (cachedPortal.ConnectionHttpStatusCode != HttpStatusCode.OK)
+                    await CurrentPortal.Connect(updateConnection: false);
+                    if (CurrentPortal.ConnectionHttpStatusCode != HttpStatusCode.OK)
                     {
-                        diagnostics.OutputDiagnosticString("Failed to connect to device. HTTP status code: {0}\nRetrying connection...", cachedPortal.ConnectionHttpStatusCode.ToString());
+                        diagnostics.OutputDiagnosticString("Failed to connect to device. HTTP status code: {0}\nRetrying connection...", CurrentPortal.ConnectionHttpStatusCode.ToString());
                     }
                 }
-                while (cachedPortal.ConnectionHttpStatusCode != HttpStatusCode.OK);
+                while (CurrentPortal.ConnectionHttpStatusCode != HttpStatusCode.OK);
                 await GetDeviceInfoAsync();
             }
             catch(Exception exn)
@@ -330,15 +373,10 @@ namespace SimpleDeviceConnection
 
         private async Task GetDeviceInfoAsync()
         {
-            DeviceName = await cachedPortal.GetDeviceName();
-            DeviceFamily = await cachedPortal.GetDeviceFamily();
-            osInfo = await cachedPortal.GetOperatingSystemInformation();
-            OnPropertyChanged("ComputerName");
-            OnPropertyChanged("Language");
-            OnPropertyChanged("OsEdition");
-            OnPropertyChanged("OsEditionId");
-            OnPropertyChanged("OsVersion");
-            OnPropertyChanged("Platform");
+            DeviceName = await CurrentPortal.GetDeviceName();
+            DeviceFamily = await CurrentPortal.GetDeviceFamily();
+            osInfo = await CurrentPortal.GetOperatingSystemInformation();
+            OnOsInfoChanged();
         }
 
         void ClearCredentials()
@@ -357,13 +395,24 @@ namespace SimpleDeviceConnection
             OnPropertyChanged("CanUpdateDeviceName");
         }
 
+        private void OnOsInfoChanged()
+        {
+            OnPropertyChanged("ComputerName");
+            OnPropertyChanged("Language");
+            OnPropertyChanged("OsEdition");
+            OnPropertyChanged("OsEditionId");
+            OnPropertyChanged("OsVersion");
+            OnPropertyChanged("Platform");
+        }
+
         public bool CanUpdateDeviceName
         {
             get
             {
-                return cachedPortal != null && !CanExecuteConnect(null);
+                return CurrentPortal != null && !IsConnecting;
             }
         }
+        
         #endregion // Misc. Methods
 
         //-------------------------------------------------------------------
