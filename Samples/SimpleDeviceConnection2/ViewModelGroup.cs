@@ -23,6 +23,8 @@ namespace SimpleDeviceConnection2
             AggregateDiagnosticSink aggDiags = new AggregateDiagnosticSink(Diagnostics, debugDiags);
 
             DeviceConnection = new DeviceConnectionViewModel(aggDiags);
+            DeviceConnection.AddDevicePortalConnectionFactory(new XboxDevicePortalConnectionFactory());
+            DeviceConnection.AddDevicePortalConnectionFactory(new GenericDevicePortalConnectionFactory());
         }
         #endregion // Constructors
 

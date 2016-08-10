@@ -22,14 +22,20 @@
             <TextBox x:Name="username"  Margin="91,49,15,0" TextWrapping="NoWrap" Text="{Binding UserName}" VerticalAlignment="Top" Height="32" TextChanged="Username_TextChanged" IsEnabled="{Binding Ready}" />
             <TextBlock x:Name="passwordLabel"  HorizontalAlignment="Left" Margin="15,92,0,0" TextWrapping="Wrap" Text="Password" VerticalAlignment="Top" Height="20" Width="62"/>
             <local:BindablePassword x:Name="password"  Margin="90,85,16,0" VerticalAlignment="Top" Height="32" Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Ready}" />
-            <Button x:Name="connectToDevice" Content="Connect"  Command="{Binding ConnectCommand}" HorizontalAlignment="Left" Margin="16,123,0,0" VerticalAlignment="Top" Width="93" Height="32" IsEnabled="{Binding Ready}" />
-            <Button x:Name="rebootDevice" Content="Reboot"  HorizontalAlignment="Left" Margin="114,123,0,0" VerticalAlignment="Top" Width="93" IsEnabled="False" Height="32"/>
-            <Button x:Name="shutdownDevice" Content="Shutdown"  HorizontalAlignment="Left" Margin="212,123,0,0" VerticalAlignment="Top" Width="93" IsEnabled="False" Height="32"/>
+            <Button x:Name="connectToDevice" Content="Connect"  Command="{Binding ConnectCommand}" Margin="0,123,16,0" VerticalAlignment="Top" Height="32" IsEnabled="{Binding Ready}" HorizontalAlignment="Right" Width="93" />
 
             <Border  BorderBrush="Black" BorderThickness="1" Height="1" Margin="15,160,15,0" VerticalAlignment="Top"/>
 
             <Button x:Name="getIPConfig" Content="Get IP Config"  HorizontalAlignment="Left" Margin="12,166,0,0" VerticalAlignment="Top" Width="144" IsEnabled="False" Height="32"/>
             <Button x:Name="getWiFiInfo" Content="Get WiFi Info"  HorizontalAlignment="Left" Margin="161,166,0,0" VerticalAlignment="Top" Width="144" IsEnabled="False" Height="32"/>
+            <ComboBox x:Name="listBox" HorizontalAlignment="Left" Height="32" Margin="141,123,0,0" VerticalAlignment="Top" Width="141" ItemsSource="{Binding ConnectionTypes}" SelectedItem="{Binding ConnectionTypeSelection}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock x:Name="connectionTypeLabel"  HorizontalAlignment="Left" Margin="43,129,0,0" TextWrapping="Wrap" Text="Connection Type" VerticalAlignment="Top" Height="20" Width="93"/>
         </Grid>
 
         <Grid Grid.Column="1" >

@@ -1,9 +1,12 @@
 ﻿using Microsoft.Tools.WindowsDevicePortal;
 using Prism.Commands;
+using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Net;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,8 +14,63 @@ using System.Windows.Input;
 
 namespace SimpleDeviceConnection2
 {
-    public class DeviceConnectionViewModel : INotifyPropertyChanged
+    public interface IDevicePortalConnectionFactory
     {
+        IDevicePortalConnection CreateConnection(
+            string address,
+            string userName,
+            SecureString password);
+
+        string Name { get; }
+    }
+
+    class XboxDevicePortalConnectionFactory : IDevicePortalConnectionFactory
+    {
+        public string Name { get { return "Xbox One"; } }
+        
+        public IDevicePortalConnection CreateConnection(
+            string address,
+            string userName,
+            SecureString password)
+        {
+            return new XboxDevicePortalConnection(address, userName, password);
+        }
+    }
+
+    class GenericDevicePortalConnectionFactory : IDevicePortalConnectionFactory
+    {
+        public string Name { get { return "Generic Device"; } }
+
+        public IDevicePortalConnection CreateConnection(string address, string userName, SecureString password)
+        {
+            return new DefaultDevicePortalConnection(address, userName, password);
+        }
+    }
+
+    public delegate void DeviceSignInEventHandler(DeviceConnectionViewModel sender, DeviceSignInEventArgs args);
+
+    public class DeviceSignInEventArgs : System.EventArgs
+    {
+        internal DeviceSignInEventArgs(HttpStatusCode statusCode, DevicePortal portal)
+        {
+            this.StatusCode = statusCode;
+            this.Portal = portal;
+        }
+
+        public HttpStatusCode StatusCode{ get; private set; }
+
+        public DevicePortal Portal { get; private set; }
+    }
+
+    public class DeviceConnectionViewModel : BindableBase
+    {
+        //-------------------------------------------------------------------
+        //  Private Members
+        //-------------------------------------------------------------------
+        #region Private Members
+        private IDiagnosticSink diagnostics;
+        #endregion // Private Members
+
         //-------------------------------------------------------------------
         //  Constructors
         //-------------------------------------------------------------------
@@ -25,6 +83,7 @@ namespace SimpleDeviceConnection2
         {
             this.ready = true;
             this.diagnostics = new NullDiagnosticSink();
+
         }
 
         /// <summary>
@@ -46,15 +105,8 @@ namespace SimpleDeviceConnection2
         private string deviceIP;
         public string DeviceIP
         {
-            get
-            {
-                return deviceIP;
-            }
-
-            set
-            {
-                SetField(ref deviceIP, value, "DeviceIP");
-            }
+            get { return this.deviceIP; }
+            set { SetProperty(ref this.deviceIP, value); }
         }
         #endregion // DeviceIP
 
@@ -62,15 +114,8 @@ namespace SimpleDeviceConnection2
         private string userName;
         public string UserName
         {
-            get
-            {
-                return userName;
-            }
-
-            set
-            {
-                SetField(ref userName, value, "UserName");
-            }
+            get { return this.userName; }
+            set { SetProperty(ref this.userName, value); }
         }
         #endregion // UserName
 
@@ -78,35 +123,43 @@ namespace SimpleDeviceConnection2
         private SecureString password;
         public SecureString Password
         {
-            get
-            {
-                return password;
-            }
-
-            set
-            {
-                SetField(ref password, value, "Password");
-            }
+            get { return this.password; }
+            set { SetProperty(ref this.password, value); }
         }
         #endregion // Password
-
 
         #region Ready
         private bool ready;
         public bool Ready
         {
-            get
-            {
-                return ready;
-            }
-
-            private set
-            {
-                SetField(ref ready, value, "Ready");
-            }
+            get { return this.ready; }
+            private set { SetProperty(ref this.ready, value); }
         }
         #endregion // Ready
 
+        #region Connection Types
+        private ObservableCollection<IDevicePortalConnectionFactory> connectionTypes;
+        public ObservableCollection<IDevicePortalConnectionFactory> ConnectionTypes
+        {
+            get
+            {
+                if (this.connectionTypes == null)
+                {
+                    this.connectionTypes = new ObservableCollection<IDevicePortalConnectionFactory>();
+                }
+                return this.connectionTypes;
+            }
+        }
+        #endregion // Connection Types
+
+        #region ConnectionTypeSelection
+        private IDevicePortalConnectionFactory connectionTypeSelection;
+        public IDevicePortalConnectionFactory ConnectionTypeSelection
+        {
+            get { return this.connectionTypeSelection; }
+            set { SetProperty(ref this.connectionTypeSelection, value); }
+        }
+        #endregion // ConnectionTypeSelection
         #endregion // Properties
 
         //-------------------------------------------------------------------
@@ -122,99 +175,79 @@ namespace SimpleDeviceConnection2
             {
                 if (connectCommand == null)
                 {
-                    connectCommand = new DelegateCommand(ExecuteConnect, CanExecuteConnect);
-                    connectCommand.ObservesProperty(() => DeviceIP);
-                    connectCommand.ObservesProperty(() => UserName);
-                    connectCommand.ObservesProperty(() => Password);
-                    connectCommand.ObservesProperty(() => Ready);
+                    connectCommand = DelegateCommand.FromAsyncHandler(ExecuteConnectAsync, CanExecuteConnect);
+                    connectCommand.ObservesProperty(() => this.DeviceIP);
+                    connectCommand.ObservesProperty(() => this.UserName);
+                    connectCommand.ObservesProperty(() => this.Password);
+                    connectCommand.ObservesProperty(() => this.Ready);
+                    connectCommand.ObservesProperty(() => this.ConnectionTypeSelection);
                 }
                 return connectCommand;
             }
         }
 
-        private void ExecuteConnect()
+        private async Task ExecuteConnectAsync()
         {
-            this.diagnostics.OutputDiagnosticString("[{0}] Attempting to connect.\n", deviceIP);
+            this.diagnostics.OutputDiagnosticString("[{0}] Attempting to connect.\n", this.deviceIP);
 
-            IDevicePortalConnection conn = new XboxDevicePortalConnection(deviceIP, userName, password);
+            IDevicePortalConnection conn = this.ConnectionTypeSelection.CreateConnection(this.DeviceIP, this.UserName, this.Password);
 
             DevicePortal portal = new DevicePortal(conn);
             portal.ConnectionStatus += (DevicePortal sender, DeviceConnectionStatusEventArgs args) =>
             {
-                diagnostics.OutputDiagnosticString("[{0}] Connection status update: Status: {1}, Phase: {2}\n", deviceIP, args.Status, args.Phase);
+                diagnostics.OutputDiagnosticString("[{0}] Connection status update: Status: {1}, Phase: {2}\n", portal.Address, args.Status, args.Phase);
                 if (args.Status == DeviceConnectionStatus.Connected)
                 {
-                    diagnostics.OutputDiagnosticString("[{0}] Language: {1}\n", deviceIP, conn.OsInfo.Language);
-                    diagnostics.OutputDiagnosticString("[{0}] Name: {1}\n", deviceIP, conn.OsInfo.Name);
-                    diagnostics.OutputDiagnosticString("[{0}] OsEdition: {1}\n", deviceIP, conn.OsInfo.OsEdition);
-                    diagnostics.OutputDiagnosticString("[{0}] OsEditionId: {1}\n", deviceIP, conn.OsInfo.OsEditionId);
-                    diagnostics.OutputDiagnosticString("[{0}] OsVersionString: {1}\n", deviceIP, conn.OsInfo.OsVersionString);
-                    diagnostics.OutputDiagnosticString("[{0}] Platform: {1}\n", deviceIP, conn.OsInfo.Platform);
-                    diagnostics.OutputDiagnosticString("[{0}] PlatformName: {1}\n", deviceIP, conn.OsInfo.PlatformName);
-                    this.Ready = true;
-
+                    diagnostics.OutputDiagnosticString("[{0}] Language: {1}\n", portal.Address, conn.OsInfo.Language);
+                    diagnostics.OutputDiagnosticString("[{0}] Name: {1}\n", portal.Address, conn.OsInfo.Name);
+                    diagnostics.OutputDiagnosticString("[{0}] OsEdition: {1}\n", portal.Address, conn.OsInfo.OsEdition);
+                    diagnostics.OutputDiagnosticString("[{0}] OsEditionId: {1}\n", portal.Address, conn.OsInfo.OsEditionId);
+                    diagnostics.OutputDiagnosticString("[{0}] OsVersionString: {1}\n", portal.Address, conn.OsInfo.OsVersionString);
+                    diagnostics.OutputDiagnosticString("[{0}] Platform: {1}\n", portal.Address, conn.OsInfo.Platform);
+                    diagnostics.OutputDiagnosticString("[{0}] PlatformName: {1}\n", portal.Address, conn.OsInfo.PlatformName);
                 }
                 else if (args.Status == DeviceConnectionStatus.Failed)
                 {
-                    diagnostics.OutputDiagnosticString("[{0}] Bummer.\n", deviceIP);
-                    this.Ready = true;
+                    diagnostics.OutputDiagnosticString("[{0}] Bummer.\n", portal.Address);
                 }
             };
 
-            this.Ready = false;
-            Task t = ConnectAsync(portal);
-        }
-
-        private async Task ConnectAsync(DevicePortal portal)
-        {
             try
             {
+                this.Ready = false;
                 await portal.Connect();
             }
             catch (Exception exn)
             {
-                diagnostics.OutputDiagnosticString("[{0}] Exception when trying to connect:\n[{0}] {1}\nStackTrace: \n[{0}] {2}\n", deviceIP, exn.Message, exn.StackTrace);
+                diagnostics.OutputDiagnosticString("[{0}] Exception when trying to connect:\n[{0}] {1}\nStackTrace: \n[{0}] {2}\n", portal.Address, exn.Message, exn.StackTrace);
             }
+            this.SignInAttempts?.Invoke(this, new DeviceSignInEventArgs(portal.ConnectionHttpStatusCode, portal));
+            this.Ready = true;
         }
 
         private bool CanExecuteConnect()
         {
             return
                 Ready &&
-                !string.IsNullOrWhiteSpace(DeviceIP) &&
-                !string.IsNullOrWhiteSpace(UserName) &&
-                password != null &&
-                password.Length > 0;
+                !string.IsNullOrWhiteSpace(this.DeviceIP) &&
+                !string.IsNullOrWhiteSpace(this.UserName) &&
+                this.Password != null &&
+                this.Password.Length > 0 &&
+                this.ConnectionTypeSelection != null;
         }
         #endregion // Connect Command
-
         #endregion // Commands
 
-        //-------------------------------------------------------------------
-        //  Private Members
-        //-------------------------------------------------------------------
-        #region Private Members
-
-        private IDiagnosticSink diagnostics;
-        #endregion // Private Members
-
-        //-------------------------------------------------------------------
-        //  INotifyPropertyChanged Implementation
-        //-------------------------------------------------------------------
-        #region INotifyPropertyChanged implementation
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected virtual void OnPropertyChanged(string propertyName)
+        #region Public Methods
+        public void AddDevicePortalConnectionFactory(IDevicePortalConnectionFactory factory)
         {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
+            this.ConnectionTypes.Add(factory);
         }
-        protected bool SetField<T>(ref T field, T value, string propertyName)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-        #endregion // INotifyPropertyChanged implementation
+        #endregion // Public Methods
+
+        #region Events
+        public event DeviceSignInEventHandler SignInAttempts;
+        #endregion // Events
+
     }
 }
