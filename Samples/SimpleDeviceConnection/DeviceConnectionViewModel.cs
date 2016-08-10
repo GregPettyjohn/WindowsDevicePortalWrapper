@@ -1,4 +1,5 @@
 ﻿using Microsoft.Tools.WindowsDevicePortal;
+using Prism.Commands;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -245,20 +246,23 @@ namespace SimpleDeviceConnection
         #region Commands
 
         #region Connect Command
-        private ICommand connectCommand;
+        private DelegateCommand connectCommand;
         public ICommand ConnectCommand
         {
             get
             {
                 if (connectCommand == null)
                 {
-                    connectCommand = new RelayCommand(ExecuteConnect, CanExecuteConnect);
+                    connectCommand = new DelegateCommand(ExecuteConnect, CanExecuteConnect);
+                    connectCommand.ObservesProperty(() => DeviceIP);
+                    connectCommand.ObservesProperty(() => UserName);
+                    connectCommand.ObservesProperty(() => Password);
                 }
                 return connectCommand;
             }
         }
 
-        private void ExecuteConnect(object obj)
+        private void ExecuteConnect()
         {
             diagnostics.OutputDiagnosticString("Connect clicked\n");
             if (!IsConnecting)
@@ -272,7 +276,7 @@ namespace SimpleDeviceConnection
 
                 DevicePortal portal = new DevicePortal(conn);
 
-                portal.ConnectionStatus += (object sender, DeviceConnectionStatusEventArgs args) =>
+                portal.ConnectionStatus += (DevicePortal sender, DeviceConnectionStatusEventArgs args) =>
                 {
                     diagnostics.OutputDiagnosticString("Connection status update: Status: {0}, Phase: {1}\n", args.Status, args.Phase);
                     if (args.Status == DeviceConnectionStatus.Connected)
@@ -292,7 +296,7 @@ namespace SimpleDeviceConnection
             }
         }
 
-        private bool CanExecuteConnect(object obj)
+        private bool CanExecuteConnect()
         {
             return
                 !IsConnecting &&
@@ -303,7 +307,7 @@ namespace SimpleDeviceConnection
         #endregion // Connect Command
 
         #region UpdateDeviceName Command
-        private ICommand updateDeviceNameCommand;
+        private DelegateCommand updateDeviceNameCommand;
 
         public ICommand UpdateDeviceNameCommand
         {
@@ -311,18 +315,21 @@ namespace SimpleDeviceConnection
             {
                 if(updateDeviceNameCommand == null)
                 {
-                    updateDeviceNameCommand = new RelayCommand(ExecuteUpdateDeviceName, CanExecuteUpdateDeviceName);
+                    updateDeviceNameCommand = new DelegateCommand(ExecuteUpdateDeviceName, CanExecuteUpdateDeviceName);
+                    updateDeviceNameCommand.ObservesProperty(() => CanUpdateDeviceName);
+                    updateDeviceNameCommand.ObservesProperty(() => DeviceName);
+
                 }
                 return updateDeviceNameCommand;
             }
         }
 
-        private void ExecuteUpdateDeviceName(object obj)
+        private void ExecuteUpdateDeviceName()
         {
             Task t = UpdateDeviceNameAsync();
         }
 
-        private bool CanExecuteUpdateDeviceName(object obj)
+        private bool CanExecuteUpdateDeviceName()
         {
             return CanUpdateDeviceName && !string.IsNullOrWhiteSpace(DeviceName);
         }

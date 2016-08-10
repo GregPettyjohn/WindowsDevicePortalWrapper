@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SimpleDeviceConnection
+namespace Microsoft.Tools.WindowsDevicePortal
 {
     /// <summary>
     /// Interface describes a destination for diagnostic output

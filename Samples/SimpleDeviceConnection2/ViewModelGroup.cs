@@ -5,8 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-
-namespace SimpleDeviceConnection
+namespace SimpleDeviceConnection2
 {
     public class ViewModelGroup
     {
@@ -23,7 +22,7 @@ namespace SimpleDeviceConnection
             DebugDiagnosticSink debugDiags = new DebugDiagnosticSink();
             AggregateDiagnosticSink aggDiags = new AggregateDiagnosticSink(Diagnostics, debugDiags);
 
-            DeviceConnetion = new DeviceConnectionViewModel(aggDiags);
+            DeviceConnection = new DeviceConnectionViewModel(aggDiags);
         }
         #endregion // Constructors
 
@@ -32,7 +31,7 @@ namespace SimpleDeviceConnection
         //-------------------------------------------------------------------
         #region Properties
         public DiagnosticOutputViewModel Diagnostics { get; private set; }
-        public DeviceConnectionViewModel DeviceConnetion { get; private set; }
+        public DeviceConnectionViewModel DeviceConnection { get; private set; }
         #endregion // Properties
     }
 }
